@@ -4,7 +4,7 @@
 #define DISABLE_LED_GREEN digitalWrite(LED_GREEN, LOW)
 #define P1Down (digitalRead(P1) == 0)
 
-const unsigned long P1_COUNTER_INITIAL_VALUE = 1;
+const unsigned long P1_COUNTER_INITIAL_VALUE = 0;
 unsigned long p1Counter = P1_COUNTER_INITIAL_VALUE;
 const unsigned long TICK_INTERVAL = 20;
 const unsigned long DEFAULT_FLASH_INTERVAL = 1000;
