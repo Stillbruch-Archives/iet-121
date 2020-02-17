@@ -70,7 +70,7 @@ unsigned long getFlashInterval() {
 }
 
 unsigned long getTicks() {
-    return (p1Counter * TICK_INTERVAL) / 50 > 0 ? (p1Counter * TICK_INTERVAL) / 50 : 1;
+    return p1Counter/ 50 > 0 ? p1Counter / 50 : 1;
 }
 
 void serialMonitoring(unsigned long monitoringInterval){
