@@ -47,8 +47,6 @@ void loop() {
         phaseP1 = 1;
     }
 
-
-
     switch (phaseLed) {
         case 1:
             ENABLE_LED_GREEN;
