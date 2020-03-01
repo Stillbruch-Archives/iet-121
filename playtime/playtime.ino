@@ -1,67 +1,159 @@
-#define SPKR 1
-#define P1 2
-#define P2 3
-#define LED_GREEN 5
-#define LED_YELLOW 6
-#define LED_RED 7
-#define ENABLE_LED_GREEN digitalWrite(LED_GREEN, HIGH)
-#define DISABLE_LED_GREEN digitalWrite(LED_GREEN, LOW)
-#define ENABLE_LED_YELLOW digitalWrite(LED_YELLOW, HIGH)
-#define DISABLE_LED_YELLOW digitalWrite(LED_YELLOW, LOW)
-#define ENABLE_LED_RED digitalWrite(LED_RED, HIGH)
-#define DISABLE_LED_RED digitalWrite(LED_RED, LOW)
+#include "mfs.h"
 
-const unsigned long DEFAULT_PHASE_1_INTERVAL = 1000;
-const unsigned long DEFAULT_PHASE_2_INTERVAL = 2000;
-const unsigned long DEFAULT_MONITORING_INTERVAL = 1000;
-const long DEFAULT_RANDOM_LOWER = 500;
-const long DEFAULT_RANDOM_UPPER = 5000;
+const unsigned long DEFAULT_RED_STATE_DURATION = 1000;
+const unsigned long MIN_ORANGE_STATE_DURATION = 500;
+const unsigned long MAX_ORANGE_STATE_DURATION = 5000;
 
-int phaseGame = 1;
+enum GameState
+{
+    Red,
+    Orange,
+    Green,
+    Over
+} gameState;
 
-unsigned long phaseGameTimestamp;
-long timeToGreen;
-unsigned long monitoringTimestamp;
+unsigned long timeInState;
+unsigned long redStateDuration;
+unsigned long orangeStateDuration;
 
-void setup() {
-    pinMode(P1, INPUT);
-    pinMode(SPKR, OUTPUT);
-    pinMode(LED_RED, OUTPUT);
-    pinMode(LED_YELLOW, OUTPUT);
-    pinMode(LED_GREEN, OUTPUT);
-    // Serial.begin(9600);
-    phaseGameTimestamp = millis();
-    monitoringTimestamp = millis();
+void setup()
+{
+    // software init
     randomSeed(analogRead(0));
-    timeToGreen = random(DEFAULT_RANDOM_LOWER, DEFAULT_RANDOM_UPPER);
-    // Serial.println(timeToGreen, DEC);
+
+    // hardware init
+    pinMode(P1, INPUT);
+    pinMode(LED_1, OUTPUT);
+    pinMode(LED_2, OUTPUT);
+    pinMode(LED_3, OUTPUT);
+    Serial.begin(9600);
+
+    // game state init
+    resetGame();
 }
 
-void loop() {
-    switch (phaseGame) {
-        case 1:
-            ENABLE_LED_RED;
-            if (millis() - phaseGameTimestamp > DEFAULT_PHASE_1_INTERVAL) {
-                phaseGameTimestamp = millis();
-                phaseGame = 2;
-            }
-            break;
-        case 2:
-            ENABLE_LED_YELLOW;
-            if (millis() - phaseGameTimestamp > timeToGreen) {
-                phaseGameTimestamp = millis();
-                phaseGame = 3;
-            }
-            break;
-        case 3:
-            DISABLE_LED_RED;
-            DISABLE_LED_YELLOW;
-            ENABLE_LED_GREEN;
-            // phaseGame = 1;
-            break;
+void loop()
+{
+    if(isResetButtonPressed()) {
+        resetGame();
+    }
+
+    if (!isGameRunning())
+    {
+        return;
+    }
+
+    if (isReactionMeasurementButtonPressed())
+    {
+        if (gameState == GameState::Green)
+        {
+            outputReactionTime();
+        }
+        else
+        {
+            outputError();
+        }
+
+        setGameStateAndResetTimeInState(GameState::Over);
+    }
+
+    switch (gameState)
+    {
+    case GameState::Red:
+        setLedsToRed();
+
+        if (getTimeInState() > redStateDuration)
+        {
+            setGameStateAndResetTimeInState(GameState::Orange);
+        }
+
+        break;
+    case GameState::Orange:
+        setLedsToOrange();
+
+        if (getTimeInState() > orangeStateDuration)
+        {
+            setGameStateAndResetTimeInState(GameState::Green);
+        }
+
+        break;
+    case GameState::Green:
+        setLedsToGreen();
+
+        break;
     }
 }
 
-bool pIsDown(uint8_t pin) {
+void resetGame() {
+    setGameStateAndResetTimeInState(GameState::Red);
+    redStateDuration = DEFAULT_RED_STATE_DURATION;
+    orangeStateDuration = random(MIN_ORANGE_STATE_DURATION, MAX_ORANGE_STATE_DURATION);
+    Serial.println("Game has started.");
+}
+
+void setLedsToRed()
+{
+    Led1On;
+    Led2Off;
+    Led3Off;
+}
+
+void setLedsToOrange()
+{
+    Led1On;
+    Led2On;
+    Led3Off;
+}
+
+void setLedsToGreen()
+{
+    Led1Off;
+    Led2Off;
+    Led3On;
+}
+
+void setGameStateAndResetTimeInState(GameState newGameState)
+{
+    gameState = newGameState;
+    resetTimeInState();
+}
+
+unsigned long getTimeInState()
+{
+    return millis() - timeInState;
+}
+
+void resetTimeInState()
+{
+    timeInState = millis();
+}
+
+void outputError()
+{
+    Serial.println(gameState, DEC);
+}
+
+void outputReactionTime()
+{
+    Serial.println(getTimeInState(), DEC);
+}
+
+bool isReactionMeasurementButtonPressed()
+{
+    return pIsDown(P1);
+}
+
+bool isResetButtonPressed()
+{
+    return pIsDown(P2);
+}
+
+bool isGameRunning()
+{
+    return gameState != GameState::Over;
+}
+
+bool pIsDown(uint8_t pin)
+{
     return digitalRead(pin) == 0;
 }
